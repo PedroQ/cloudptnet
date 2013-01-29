@@ -6,19 +6,30 @@ using System.Text;
 
 namespace CloudPTNet
 {
-    public class RequestBuilder
+    internal class RequestBuilder
     {
         private string _apiVer;
 
-        public RequestBuilder(string _apiVer)
+        internal RequestBuilder(string _apiVer)
         {
             this._apiVer = _apiVer;
         }
 
-        public RestRequest BuildTokenRequest()
+        internal RestRequest BuildOAuthTokenRequest()
         {
-            RestRequest request = new RestRequest("{ver}/oauth/request_token");
-            request.AddParameter("ver", _apiVer);
+            RestRequest request = new RestRequest("oauth/request_token");
+            return request;
+        }
+
+        internal RestRequest BuildOAuthAuthorizeRequest()
+        {
+            RestRequest request = new RestRequest("oauth/authorize");
+            return request;
+        }
+
+        internal RestRequest BuildOAuthAccessTokenRequest()
+        {
+            RestRequest request = new RestRequest("oauth/access_token");
             return request;
         }
     }

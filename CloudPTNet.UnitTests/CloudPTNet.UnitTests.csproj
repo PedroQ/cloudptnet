@@ -56,6 +56,12 @@
     <Compile Include="AuthTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CloudPTNet\CloudPTNet.csproj">
+      <Project>{d6489319-b342-4f73-b970-4dcbb012a3ed}</Project>
+      <Name>CloudPTNet</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">
       <ItemGroup>
