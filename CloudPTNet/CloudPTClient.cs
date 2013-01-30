@@ -4,26 +4,32 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace CloudPTNet
 {
     public class CloudPTClient
     {
-        private const string _apiUrl = "https://publicapi.cloudpt.pt";
-        private const string _apiContentUrl = "https://api-content.cloudpt.pt";
-        private const string _apiOAuthUrl = "https://cloudpt.pt";
-        private const string _apiVer = "1";
-
         private readonly string _consumerKey;
         private readonly string _consumerSecret;
         private AuthToken _authToken;
 
         private RestClient _apiRestClient;
-        private RestClient _apiContentRestClient;
-        private RestClient _apiOAuthRestClient;
+
         private RequestBuilder _reqBuilder;
 
-        public AuthToken AuthenticationToken { get; set; }
+        public AuthToken AuthenticationToken
+        {
+            get
+            {
+                return _authToken;
+            }
+            set
+            {
+                _authToken = value;
+                SetRestClientsAuthenticator();
+            }
+        }
 
         public CloudPTClient(string consumerKey, string secret)
         {
@@ -38,16 +44,21 @@ namespace CloudPTNet
             _consumerKey = consumerKey;
             _consumerSecret = secret;
 
+            InitializeRestClients();
+
             AuthenticationToken = new AuthToken(authToken, authSecret);
         }
 
         private void InitializeRestClients()
         {
-            _apiRestClient = new RestClient(_apiUrl);
-            _apiContentRestClient = new RestClient(_apiContentUrl);
-            _apiOAuthRestClient = new RestClient(_apiOAuthUrl);
+            _apiRestClient = new RestClient();
+            _reqBuilder = new RequestBuilder(); //Convert to Singleton?
 
-            _reqBuilder = new RequestBuilder(_apiVer); //Convert to Singleton?
+        }
+
+        private void SetRestClientsAuthenticator()
+        {
+            _apiRestClient.Authenticator = RestSharp.Authenticators.OAuth1Authenticator.ForProtectedResource(_consumerKey, _consumerSecret, AuthenticationToken.Token, AuthenticationToken.Secret);
 
         }
 
@@ -55,12 +66,12 @@ namespace CloudPTNet
 
         public AuthToken GetToken()
         {
-            _apiOAuthRestClient.Authenticator = RestSharp.Authenticators.OAuth1Authenticator.ForRequestToken(_consumerKey, _consumerSecret, "oob");
+            _apiRestClient.Authenticator = RestSharp.Authenticators.OAuth1Authenticator.ForRequestToken(_consumerKey, _consumerSecret, "oob");
 
             RestRequest request = _reqBuilder.BuildOAuthTokenRequest();
 
 
-            IRestResponse response = _apiOAuthRestClient.Execute(request);
+            IRestResponse response = _apiRestClient.Execute(request);
 
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 throw new CloudPTNetException();
@@ -70,23 +81,23 @@ namespace CloudPTNet
 
         public AuthToken GetAccessToken(AuthToken token, string pin)
         {
-            _apiOAuthRestClient.Authenticator = RestSharp.Authenticators.OAuth1Authenticator.ForAccessToken(_consumerKey, _consumerSecret, token.Token, token.Secret, pin);
+            _apiRestClient.Authenticator = RestSharp.Authenticators.OAuth1Authenticator.ForAccessToken(_consumerKey, _consumerSecret, token.Token, token.Secret, pin);
 
             RestRequest request = _reqBuilder.BuildOAuthAccessTokenRequest();
 
 
-            IRestResponse response = _apiOAuthRestClient.Execute(request);
+            IRestResponse response = _apiRestClient.Execute(request);
 
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 throw new CloudPTNetException();
 
-            _authToken = ParseToken(response.Content);
+            AuthenticationToken = ParseToken(response.Content);
             return _authToken;
         }
 
         public string GetOAuthAuthorizeUrl(AuthToken token)
         {
-            return string.Format("{0}/oauth/authorize?oauth_token={1}", _apiOAuthUrl, token.Token);
+            return _reqBuilder.BuildOAuthAuthorizeUrl(token.Token);
         }
 
         private AuthToken ParseToken(string p)
@@ -106,10 +117,44 @@ namespace CloudPTNet
             return token;
         }
 
-        
+
 
         #endregion
 
-       //ToDO: Partial Classes (Sync & Async), this goes there.
+        #region Account
+
+        public AccountInfo AccountInfo()
+        {
+            RestRequest request = _reqBuilder.BuildAccountRequest();
+            request.OnBeforeDeserialization = UidFix;
+            var response = _apiRestClient.Execute<AccountInfo>(request);
+
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                throw new CloudPTNetException();
+
+            return response.Data;
+        }
+
+        //Forces the RestSharp Json parser to parse the uid field as a string by surrounding it with quotation marks,
+        //otherwise it will try to parse it as a long (and will fail).
+        //To be parsed as a double it should be in scientific notation format
+        private void UidFix(IRestResponse response)
+        {
+            if (response.StatusCode != System.Net.HttpStatusCode.OK || string.IsNullOrWhiteSpace(response.Content))
+                return;
+
+            var content = response.Content;
+
+            var regexPattern = "(\"uid\"): (?<uid>\\d+)";
+
+            var replacePattern = "\"uid\": \"${uid}\"";
+
+            content = Regex.Replace(content, regexPattern, replacePattern, RegexOptions.IgnoreCase);
+            response.Content = content;
+        }
+
+        #endregion
+
+        //ToDO: Partial Classes (Sync & Async), this goes there.
     }
 }

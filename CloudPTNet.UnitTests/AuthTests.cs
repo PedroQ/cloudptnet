@@ -7,15 +7,12 @@ namespace CloudPTNet.UnitTests
     [TestClass]
     public class AuthTests
     {
-        string _consumerKey = "CloudPT Consumer key";
-        string _consumerSecret = "CloudPT Secret";
-
         CloudPTClient client;
 
         [TestInitialize]
         public void SetUpClient()
         {
-            client = new CloudPTClient(_consumerKey, _consumerSecret);
+            client = new CloudPTClient(ApiCredentials.consumerKey, ApiCredentials.consumerSecret);
         }
 
         [TestCleanup]
@@ -41,5 +38,6 @@ namespace CloudPTNet.UnitTests
 
             Assert.IsNotNull(authorizeUrl);
         }
+
     }
 }
