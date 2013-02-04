@@ -47,6 +47,9 @@
     <Compile Include="CloudPTClient.cs" />
     <Compile Include="CloudPTNetException.cs" />
     <Compile Include="Models\AccountInfo.cs" />
+    <Compile Include="Models\Metadata.cs" />
+    <Compile Include="Models\MetadataShare.cs" />
+    <Compile Include="Models\PublicLink.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RequestBuilder.cs" />
   </ItemGroup>

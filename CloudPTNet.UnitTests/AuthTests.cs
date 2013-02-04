@@ -12,7 +12,7 @@ namespace CloudPTNet.UnitTests
         [TestInitialize]
         public void SetUpClient()
         {
-            client = new CloudPTClient(ApiCredentials.consumerKey, ApiCredentials.consumerSecret);
+            client = new CloudPTClient(ApiCredentials.consumerKey, ApiCredentials.consumerSecret, CloudPTClient.AccessRestrictions.CloudPT);
         }
 
         [TestCleanup]

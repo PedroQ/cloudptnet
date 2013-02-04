@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace CloudPTNet.UnitTests
 {
     [TestClass]
-    public class AccountTests
+    public class PublicLinksTests
     {
 
         CloudPTClient _client;
@@ -16,11 +16,10 @@ namespace CloudPTNet.UnitTests
         }
 
         [TestMethod]
-        public void TestAccountInfo()
+        public void TestGetPublicLinks()
         {
-            var accountInfo = _client.AccountInfo();
-
-            Assert.IsNotNull(accountInfo);
+            var myLinks = _client.GetPublicLinks();
+            Assert.IsNotNull(myLinks);
         }
     }
 }

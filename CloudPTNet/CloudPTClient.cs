@@ -2,8 +2,6 @@
 using RestSharp;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 
 namespace CloudPTNet
@@ -18,6 +16,7 @@ namespace CloudPTNet
 
         private RequestBuilder _reqBuilder;
 
+
         public AuthToken AuthenticationToken
         {
             get
@@ -31,18 +30,26 @@ namespace CloudPTNet
             }
         }
 
-        public CloudPTClient(string consumerKey, string secret)
+        public AccessRestrictions Restrictions
+        {
+            get;
+            private set;
+        }
+
+        public CloudPTClient(string consumerKey, string secret, AccessRestrictions accessMode)
         {
             _consumerKey = consumerKey;
             _consumerSecret = secret;
+            Restrictions = accessMode;
 
             InitializeRestClients();
         }
 
-        public CloudPTClient(string consumerKey, string secret, string authToken, string authSecret)
+        public CloudPTClient(string consumerKey, string secret, string authToken, string authSecret, AccessRestrictions accessMode)
         {
             _consumerKey = consumerKey;
             _consumerSecret = secret;
+            Restrictions = accessMode;
 
             InitializeRestClients();
 
@@ -52,7 +59,7 @@ namespace CloudPTNet
         private void InitializeRestClients()
         {
             _apiRestClient = new RestClient();
-            _reqBuilder = new RequestBuilder(); //Convert to Singleton?
+            _reqBuilder = new RequestBuilder(Restrictions); //Convert to Singleton?
 
         }
 
@@ -60,6 +67,12 @@ namespace CloudPTNet
         {
             _apiRestClient.Authenticator = RestSharp.Authenticators.OAuth1Authenticator.ForProtectedResource(_consumerKey, _consumerSecret, AuthenticationToken.Token, AuthenticationToken.Secret);
 
+        }
+
+        public enum AccessRestrictions
+        {
+            Sandbox,
+            CloudPT
         }
 
         #region OAuth Stuff
@@ -87,6 +100,9 @@ namespace CloudPTNet
 
 
             IRestResponse response = _apiRestClient.Execute(request);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                throw new CloudPTNetException(); //Wrong PIN
 
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 throw new CloudPTNetException();
@@ -155,6 +171,136 @@ namespace CloudPTNet
 
         #endregion
 
+        #region Metadata
+
+        public Metadata GetMetadata(string path, bool listContents, int fileLimit, bool includeDeleted)
+        {
+            if (fileLimit > 25000 || fileLimit < 1)
+                throw new ArgumentOutOfRangeException("filelimit", "filelimit parameter must be between 1 and 25000");
+
+            var request = _reqBuilder.BuildMetadataRequest(path, listContents, fileLimit, includeDeleted);
+
+            //var u = _apiRestClient.BuildUri(request);
+
+            var response = _apiRestClient.Execute<Metadata>(request);
+
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                throw new CloudPTNetException();
+
+            return response.Data;
+        }
+
+        public Metadata GetMetadata(string path, bool listContents, int fileLimit)
+        {
+            return GetMetadata(path, listContents, fileLimit, false);
+        }
+
+        public Metadata GetMetadata(string path, bool listContents)
+        {
+            return GetMetadata(path, listContents, 10000, false);
+        }
+
+        public Metadata GetMetadata(string path)
+        {
+            return GetMetadata(path, true, 10000, false);
+        }
+
+
+
+        #endregion
+
+        #region MetadataShare
+
+        public enum MetadataShareOrderBy
+        {
+            ModifiedDate,
+            MimeType,
+            Size,
+            Name,
+            Folder
+        }
+
+        public MetadataShare GetMetadataShare(string shareId, string path, int fileLimit, MetadataShareOrderBy sortOrder, bool orderAscending, string cursor, string mimeType)
+        {
+            if (string.IsNullOrWhiteSpace(shareId))
+                throw new ArgumentNullException("shareId");
+
+            if (string.IsNullOrWhiteSpace(path))
+                throw new ArgumentNullException("path");
+
+            if (fileLimit > 25000)
+                fileLimit = 25000;
+            if (fileLimit < 1)
+                fileLimit = 1;
+
+            var request = _reqBuilder.BuildMetadataShareRequest(shareId, path, fileLimit, sortOrder, orderAscending, cursor, mimeType);
+
+            var response = _apiRestClient.Execute<MetadataShare>(request);
+
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                throw new CloudPTNetException();
+
+            return response.Data;
+        }
+
+        public MetadataShare GetMetadataShare(string shareId, string path, int fileLimit, MetadataShareOrderBy sortOrder, bool orderAscending)
+        {
+            return GetMetadataShare(shareId, path, fileLimit, sortOrder, orderAscending, null, null);
+        }
+
+        public MetadataShare GetMetadataShare(string shareId, string path)
+        {
+            return GetMetadataShare(shareId, path, 10000, MetadataShareOrderBy.Name, true);
+        }
+
+        #endregion
+
+        #region Public Links
+
+        public List<PublicLinkListEntry> GetPublicLinks()
+        {
+            var request = _reqBuilder.BuildListLinksRequest();
+
+            var response = _apiRestClient.Execute<List<PublicLinkListEntry>>(request);
+
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                throw new CloudPTNetException();
+
+            return response.Data;
+        }
+
+        public void DeletePublicLink(string shareId)
+        {
+            if (string.IsNullOrWhiteSpace(shareId))
+                throw new ArgumentNullException("shareId");
+
+            var request = _reqBuilder.BuildDeleteLinkRequest(shareId);
+
+            var response = _apiRestClient.Execute(request);
+
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                throw new CloudPTNetException();
+        }
+
+        public PublicLink CreatePublicLink(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                throw new ArgumentNullException("path");
+
+            if (path.StartsWith("/"))
+                path = path.Substring(1);
+
+            var request = _reqBuilder.BuildCreatePublicLinkRequest(path);
+
+            var response = _apiRestClient.Execute<PublicLink>(request);
+
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                throw new CloudPTNetException();
+
+            return response.Data;
+        }
+
+        #endregion
         //ToDO: Partial Classes (Sync & Async), this goes there.
     }
 }
