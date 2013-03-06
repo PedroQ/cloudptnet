@@ -301,6 +301,19 @@ namespace CloudPTNet
         }
 
         #endregion
+
+        #region Shared Folders
+
+        public object ListSharedFolders()
+        {
+            var request = _reqBuilder.BuildListSharedFoldersRequest();
+
+            var response = _apiRestClient.Execute<SharedFolder>(request);
+
+            return response;
+        }
+
+        #endregion
         //ToDO: Partial Classes (Sync & Async), this goes there.
     }
 }

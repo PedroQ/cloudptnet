@@ -50,6 +50,7 @@
     <Compile Include="Models\Metadata.cs" />
     <Compile Include="Models\MetadataShare.cs" />
     <Compile Include="Models\PublicLink.cs" />
+    <Compile Include="Models\SharedFolder.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RequestBuilder.cs" />
   </ItemGroup>

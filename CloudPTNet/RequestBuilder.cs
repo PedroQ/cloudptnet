@@ -173,5 +173,17 @@ namespace CloudPTNet
         }
 
         #endregion
+
+        #region Shared Folders
+
+        internal RestRequest BuildListSharedFoldersRequest()
+        {
+            RestRequest request = new RestRequest(string.Format("{0}/{1}", _apiUrl, "{version}/ListSharedFolders"));
+            request.AddUrlSegment("version", _apiVer);
+
+            return request;
+        } 
+
+        #endregion
     }
 }

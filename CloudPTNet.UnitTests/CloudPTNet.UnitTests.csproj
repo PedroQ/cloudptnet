@@ -59,6 +59,7 @@
     <Compile Include="AccountTests.cs" />
     <Compile Include="MetadataTests.cs" />
     <Compile Include="PublicLinksTests.cs" />
+    <Compile Include="SharedFolderTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CloudPTNet\CloudPTNet.csproj">
